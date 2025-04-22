@@ -87,6 +87,9 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
 
     kapt ("com.squareup.moshi:moshi-kotlin-codegen:1.15.0")
+
+//    status bar
+    implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 }
 
 kapt {
