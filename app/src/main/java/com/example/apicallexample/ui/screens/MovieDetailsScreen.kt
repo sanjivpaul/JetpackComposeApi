@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.apicallexample.data.model.Genre
 import com.example.apicallexample.viewmodel.MoviesViewModel
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
@@ -114,6 +116,13 @@ fun MovieDetailsScreen(movieId:Int, viewModel: MoviesViewModel= hiltViewModel())
                         rating = details.vote_average,
                     )
 
+                    Text(
+                        text = "Genres",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    GenreListView(details.genres)
+
                     // Overview
                     Text(
                         text = "Overview",
@@ -125,8 +134,6 @@ fun MovieDetailsScreen(movieId:Int, viewModel: MoviesViewModel= hiltViewModel())
                         style = MaterialTheme.typography.bodyMedium
                     )
 
-//                    Text(text = "Rating: ${details.vote_average}/10")
-//                    Text(text = details.overview)
                 }
             }
 
@@ -174,3 +181,36 @@ fun StarRating(rating: Float, maxStars: Int = 5) {
         )
     }
 }
+
+@Composable
+fun StringListView(strings: List<String>) {
+    Column {
+        strings.forEach { str ->
+            Text(text = str)
+        }
+    }
+}
+
+@Composable
+fun GenreListView(genres: List<Genre>){
+    Row(modifier = Modifier.padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+
+//        map genres and display
+        genres.forEachIndexed { index, genre ->
+            Text(
+                text = genre.name,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+//            if genre is not present
+            if(index < genres.size -1){
+                Text(
+                    text = " . ",
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+        }
+    }
+}
+

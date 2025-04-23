@@ -11,4 +11,10 @@ data class MovieDetailsResponse(
     val release_date:String,
     val runtime:String?, // if run time is null
     val vote_average:Float,
+    val genres: List<Genre> // list of genre names
+)
+
+@JsonClass(generateAdapter = true)
+data class Genre(
+    val name: String
 )

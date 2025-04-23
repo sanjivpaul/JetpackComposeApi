@@ -12,18 +12,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-//import androidx.compose.material3.MaterialTheme.colors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +51,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 @Composable
 fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hiltViewModel()){
     val movies by viewModel.movies
+    var searchQuery by remember { mutableStateOf("") }
 
     // Status bar control
     val systemUiController = rememberSystemUiController()
@@ -53,37 +63,62 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
             darkIcons = useDarkIcons
         )
     }
-    Scaffold(
-        content = { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp) // Add horizontal padding
-            ) {
-                item {
-                    Spacer(modifier = Modifier.padding(top = 8.dp)) // Add top spacer
-                }
-                items(movies) { movie ->
-                    MovieItem(
-                        movie = movie,
-                        onClick = { navController.navigate("movie_details/${movie.id}") }
-                    )
-                    Spacer(modifier = Modifier.padding(vertical = 8.dp)) // Add spacing between items
-                }
+
+    // Filter movies based on search query
+    val filteredMovies = remember (movies, searchQuery){
+        if(searchQuery.isEmpty()){
+            movies
+        }else{
+            movies.filter { movie ->
+                movie.title.contains(searchQuery, ignoreCase = true) ||
+                        movie.overview.contains(searchQuery, ignoreCase = true)
             }
         }
+    }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Movies") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
+            )
+        },
+        content = { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding)) {
+
+                //            Search bar
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = {searchQuery = it},
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp) // Add horizontal padding
+                ) {
+                    item {
+                        Spacer(modifier = Modifier.padding(top = 8.dp)) // Add top spacer
+                    }
+
+//                here replace movies data with filtered data
+                    items(filteredMovies) { movie ->
+                        MovieItem(
+                            movie = movie,
+                            onClick = { navController.navigate("movie_details/${movie.id}") }
+                        )
+                        Spacer(modifier = Modifier.padding(vertical = 8.dp)) // Add spacing between items
+                    }
+                }
+            }
+
+
+        }
     )
-
-
-//    LazyColumn(modifier = Modifier.padding(10.dp)) {
-//
-//        items(movies){movie ->
-//
-//            MovieItem(movie = movie, onClick={
-//                navController.navigate("movie_details/${movie.id}")
-//            })
-//        }
-//    }
 
 }
 
@@ -94,39 +129,78 @@ fun MovieItem(movie: Movie, onClick: ()->Unit){
         .clickable { onClick() },
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-    Row(
-        modifier = Modifier
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-//            model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
-            model = movie.poster_path,
-            contentDescription = null,
-            modifier = Modifier.size(120.dp)
-                .clip(MaterialTheme.shapes.small),
+    )
+    {
+        Row(
+            modifier = Modifier
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text=movie.title,
-                maxLines = 1,
-                style = MaterialTheme.typography.titleLarge
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+            {
+                AsyncImage(
+        //            model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
+                    model = movie.poster_path,
+                    contentDescription = null,
+                    modifier = Modifier.size(120.dp)
+                        .clip(MaterialTheme.shapes.small),
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f))
+                    {
+                        Text(
+                            text=movie.title,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = movie.overview,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        Text(
+                            text = movie.overview,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
-            )
-        }
-    }
-
+                        )
+                    }
+            }
     }
 
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier=Modifier
+    ){
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier=modifier,
+        placeholder = {Text("Search movies...")},
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+        singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                }
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+
+            // This removes the underline
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent
+        ),
+        shape = MaterialTheme.shapes.large,
+        )
+}
+
+
+// search by api next practice
