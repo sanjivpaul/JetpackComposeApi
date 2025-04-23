@@ -9,6 +9,6 @@ data class MovieDetailsResponse(
     val overview :String,
     val poster_path:String,
     val release_date:String,
-    val runtime:Int,
+    val runtime:String?, // if run time is null
     val vote_average:Float,
 )

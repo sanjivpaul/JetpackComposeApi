@@ -90,13 +90,15 @@ fun MovieDetailsScreen(movieId:Int, viewModel: MoviesViewModel= hiltViewModel())
                         modifier = Modifier.padding(bottom = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val runtimeString = details.runtime?.split(" ")?.firstOrNull() ?: "0"
+
                         Text(
                             text = "Released: ${details.release_date}",
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = "${details.runtime} min",
+                            text = "${details.runtime}",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

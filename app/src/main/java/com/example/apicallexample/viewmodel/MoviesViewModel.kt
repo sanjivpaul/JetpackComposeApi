@@ -45,11 +45,13 @@ class MoviesViewModel @Inject constructor(
         }
     }
 
-    fun getMovieDetails(moviewId:Int){
+    fun getMovieDetails(movieId:Int){
+        Log.e("MoviesViewModel", "movie id is== $movieId", )
+
         viewModelScope.launch {
             try {
 //                val details = repository.getMovieDetails("Bearer YOUR_ACCESS_TOKEN", moviewId)
-                val details = repository.getMovieDetails("your-secret-key-for-auth", moviewId)
+                val details = repository.getMovieDetails("your-secret-key-for-auth", movieId)
                 _movieDetails.value = details
 
                 // Print response
