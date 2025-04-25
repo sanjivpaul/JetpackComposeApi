@@ -90,6 +90,9 @@ dependencies {
 
 //    status bar
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+//    pagination and loading indicator
+    implementation ("com.google.accompanist:accompanist-swiperefresh:0.27.0")
 }
 
 kapt {

@@ -2,9 +2,11 @@ package com.example.apicallexample.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,11 +14,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -28,15 +33,18 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -45,13 +53,20 @@ import coil.compose.AsyncImage
 import com.example.apicallexample.data.model.Movie
 import com.example.apicallexample.viewmodel.MoviesViewModel
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hiltViewModel()){
     val movies by viewModel.movies
+    val isLoading by viewModel.isLoading
+    val error by viewModel.error
+    val isLastPage by viewModel.isLastPage
+
     var searchQuery by remember { mutableStateOf("") }
+    val lazyListState = rememberLazyListState()
 
     // Status bar control
     val systemUiController = rememberSystemUiController()
@@ -62,6 +77,22 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
             color = Color.Transparent, // Or any color you want
             darkIcons = useDarkIcons
         )
+    }
+
+//    handle pagination when scrolling
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.layoutInfo }
+            .map { layoutInfo ->
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem?.index == layoutInfo.totalItemsCount - 1
+            }
+            .distinctUntilChanged()
+            .collect{reachedEnd ->
+                if(reachedEnd && !isLoading && !isLastPage && searchQuery.isEmpty()){
+                    viewModel.loadNextPage()
+                }
+
+            }
     }
 
     // Filter movies based on search query
@@ -82,11 +113,38 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary
-                )
+                ),
+
+//                loading indicator
+                actions = {
+                    if(isLoading){
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(end =16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
             )
         },
         content = { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding)) {
+//                Show Error
+                error?.let { errorMessage ->
+                    Text(
+                        text = "Error: ${errorMessage}",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+
+                    Button(
+                        onClick = {viewModel.clearError()},
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text("Retry")
+                    }
+                }
 
                 //            Search bar
                 SearchBar(
@@ -97,9 +155,20 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
+                if (filteredMovies.isEmpty() && !isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No movies found")
+                    }
+                }
+
                 LazyColumn(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp) // Add horizontal padding
+                        .padding(horizontal = 16.dp), // Add horizontal padding
+                            state = lazyListState // for reload and pagination
+
                 ) {
                     item {
                         Spacer(modifier = Modifier.padding(top = 8.dp)) // Add top spacer
@@ -112,6 +181,35 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                             onClick = { navController.navigate("movie_details/${movie.id}") }
                         )
                         Spacer(modifier = Modifier.padding(vertical = 8.dp)) // Add spacing between items
+                    }
+
+//                    show loading indicator at the bottom when loading more
+                    if(isLoading && filteredMovies.isNotEmpty()){
+                        item{
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ){
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+
+                    // Show end of list message
+                    if (isLastPage && filteredMovies.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "No more movies to load",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
             }
