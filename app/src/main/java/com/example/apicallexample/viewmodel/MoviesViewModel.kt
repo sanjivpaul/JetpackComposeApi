@@ -29,7 +29,7 @@ class MoviesViewModel @Inject constructor(
     private val _isLastPage = mutableStateOf(false)
     val isLastPage :State<Boolean> = _isLastPage
 
-    private var currentPage = 1
+    var currentPage = 1
 
 //    Movies Details State
     private val _movieDetails = mutableStateOf<MovieDetailsResponse?>(null)

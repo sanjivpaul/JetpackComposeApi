@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,8 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.apicallexample.data.model.Movie
 import com.example.apicallexample.viewmodel.MoviesViewModel
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -60,6 +63,8 @@ import kotlinx.coroutines.flow.map
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hiltViewModel()){
+
+    //    states of movies
     val movies by viewModel.movies
     val isLoading by viewModel.isLoading
     val error by viewModel.error
@@ -71,6 +76,12 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
     // Status bar control
     val systemUiController = rememberSystemUiController()
     val useDarkIcons = !isSystemInDarkTheme()
+
+//    pull to refresh state
+    // Pull-to-refresh state - connect to ViewModel's loading state
+    val isRefreshing by remember { derivedStateOf { isLoading && viewModel.currentPage == 1 }}
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing)
+
 
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -129,90 +140,98 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
             )
         },
         content = { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding)) {
+
+//            wrapping Column into SwipeRefresh to perform pull to refresh
+            SwipeRefresh(
+                state = swipeRefreshState,
+                onRefresh = { viewModel.refresh() }, // Let ViewModel handle the refresh
+            ) {
+                Column(modifier = Modifier.padding(innerPadding)) {
 //                Show Error
-                error?.let { errorMessage ->
-                    Text(
-                        text = "Error: ${errorMessage}",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
-                    )
-
-                    Button(
-                        onClick = {viewModel.clearError()},
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text("Retry")
-                    }
-                }
-
-                //            Search bar
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = {searchQuery = it},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                if (filteredMovies.isEmpty() && !isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("No movies found")
-                    }
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp), // Add horizontal padding
-                            state = lazyListState // for reload and pagination
-
-                ) {
-                    item {
-                        Spacer(modifier = Modifier.padding(top = 8.dp)) // Add top spacer
-                    }
-
-//                here replace movies data with filtered data
-                    items(filteredMovies) { movie ->
-                        MovieItem(
-                            movie = movie,
-                            onClick = { navController.navigate("movie_details/${movie.id}") }
+                    error?.let { errorMessage ->
+                        Text(
+                            text = "Error: ${errorMessage}",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
                         )
-                        Spacer(modifier = Modifier.padding(vertical = 8.dp)) // Add spacing between items
-                    }
 
-//                    show loading indicator at the bottom when loading more
-                    if(isLoading && filteredMovies.isNotEmpty()){
-                        item{
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ){
-                                CircularProgressIndicator()
-                            }
+                        Button(
+                            onClick = {viewModel.clearError()},
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text("Retry")
                         }
                     }
 
-                    // Show end of list message
-                    if (isLastPage && filteredMovies.isNotEmpty()) {
+                    //            Search bar
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChange = {searchQuery = it},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    if (filteredMovies.isEmpty() && !isLoading) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No movies found")
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp), // Add horizontal padding
+                        state = lazyListState // for reload and pagination
+
+                    ) {
                         item {
-                            Text(
-                                text = "No more movies to load",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            Spacer(modifier = Modifier.padding(top = 8.dp)) // Add top spacer
+                        }
+
+//                here replace movies data with filtered data
+                        items(filteredMovies) { movie ->
+                            MovieItem(
+                                movie = movie,
+                                onClick = { navController.navigate("movie_details/${movie.id}") }
                             )
+                            Spacer(modifier = Modifier.padding(vertical = 8.dp)) // Add spacing between items
+                        }
+
+//                    show loading indicator at the bottom when loading more
+                        if(isLoading && filteredMovies.isNotEmpty()){
+                            item{
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ){
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
+
+                        // Show end of list message
+                        if (isLastPage && filteredMovies.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "No more movies to load",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
                 }
             }
+
 
 
         }
@@ -241,6 +260,7 @@ fun MovieItem(movie: Movie, onClick: ()->Unit){
                     contentDescription = null,
                     modifier = Modifier.size(120.dp)
                         .clip(MaterialTheme.shapes.small),
+
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f))
