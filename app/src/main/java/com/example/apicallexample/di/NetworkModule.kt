@@ -37,7 +37,8 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(moshi: Moshi): Retrofit { // Inject Moshi here
         return Retrofit.Builder()
-            .baseUrl("http://192.168.1.11:3000/api/")
+//            .baseUrl("http://192.168.1.10:3000/api/")
+            .baseUrl("https://mytaskapp-iota.vercel.app/api/")
             .addConverterFactory(MoshiConverterFactory.create(moshi)) // Use the Moshi instance
             .build()
     }
