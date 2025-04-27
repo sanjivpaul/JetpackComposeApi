@@ -131,7 +131,7 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                     if(isLoading){
                         CircularProgressIndicator(
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(34.dp)
                                 .padding(end =16.dp),
                             strokeWidth = 2.dp
                         )

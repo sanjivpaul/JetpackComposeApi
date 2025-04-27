@@ -1,9 +1,11 @@
 package com.example.apicallexample.ui.screens
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,11 +41,19 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun MovieDetailsScreen(movieId:Int, viewModel: MoviesViewModel= hiltViewModel()) {
+
+    //    states of movie details
     val movieDetails by remember { viewModel.movieDetails }
+    val isDetailsLoading by viewModel.isDetailsLoading
+    val detailsError by viewModel.detailsError
+    val error by viewModel.error
+
 
     // Status bar control
     val systemUiController = rememberSystemUiController()
     val useDarkIcons = !isSystemInDarkTheme()
+
+
 
     SideEffect {
         systemUiController.setSystemBarsColor(
@@ -57,87 +68,107 @@ fun MovieDetailsScreen(movieId:Int, viewModel: MoviesViewModel= hiltViewModel())
 
 //    Scaffold use for add system bars properly
     Scaffold { innerPadding->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding) // This handles system bar insets
-                .padding(16.dp) // Add your content padding
-                .verticalScroll(rememberScrollState()) // Make content scrollable
-        )
-        {
+        // Show loading indicator when data is loading
+        if(isDetailsLoading){
+            LoadingIndicator(
+                modifier = Modifier.padding(innerPadding)
+                    .fillMaxSize()
+            )
+        }
 
-            movieDetails?.let { details ->
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    // Movie title
-                    Text(
-                        text = details.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    AsyncImage(
-//                model = "https://image.tmdb.org/t/p/w500${details.poster_path}",
-                        model = details.poster_path,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                            .clip(MaterialTheme.shapes.medium),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // Metadata row
-                    Row(
-                        modifier = Modifier.padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+        // Show error message if there's an error
+        else if (detailsError != null || error != null) {
+            ErrorMessage(
+                message = detailsError ?: error ?: "Unknown error",
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+            )
+        }else{
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding) // This handles system bar insets
+                    .padding(16.dp) // Add your content padding
+                    .verticalScroll(rememberScrollState()) // Make content scrollable
+            )
+            {
+
+                movieDetails?.let { details ->
+                    Column(
+                        modifier = Modifier.padding(12.dp)
                     ) {
-                        val runtimeString = details.runtime?.split(" ")?.firstOrNull() ?: "0"
-
+                        // Movie title
                         Text(
-                            text = "Released: ${details.release_date}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
+                            text = details.title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        Text(
-                            text = "${details.runtime}",
-                            style = MaterialTheme.typography.bodyMedium
+                        Spacer(modifier = Modifier.height(8.dp))
+                        AsyncImage(
+//                model = "https://image.tmdb.org/t/p/w500${details.poster_path}",
+                            model = details.poster_path,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
                         )
-                    }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // Metadata row
+                        Row(
+                            modifier = Modifier.padding(bottom = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val runtimeString = details.runtime?.split(" ")?.firstOrNull() ?: "0"
 
-                    // Rating
+                            Text(
+                                text = "Released: ${details.release_date}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${details.runtime}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        // Rating
 //                    Text(
 //                        text = "Rating: ${details.vote_average}/10",
 //                        style = MaterialTheme.typography.bodyLarge,
 //                        modifier = Modifier.padding(bottom = 16.dp)
 //                    )
 
-                    StarRating(
-                        rating = details.vote_average,
-                    )
+                        StarRating(
+                            rating = details.vote_average,
+                        )
 
-                    Text(
-                        text = "Genres",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                    GenreListView(details.genres)
+                        Text(
+                            text = "Genres",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                        GenreListView(details.genres)
 
-                    // Overview
-                    Text(
-                        text = "Overview",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = details.overview,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                        // Overview
+                        Text(
+                            text = "Overview",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        Text(
+                            text = details.overview,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
 
+                    }
                 }
+
             }
 
         }
+
 
     }
 
@@ -214,3 +245,29 @@ fun GenreListView(genres: List<Genre>){
     }
 }
 
+//Loading indicator
+@Composable
+fun LoadingIndicator(modifier: Modifier= Modifier){
+    Box(
+        modifier= Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+
+}
+
+// Optional: Create an error message component
+@Composable
+fun ErrorMessage(message: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
