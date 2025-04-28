@@ -29,6 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
@@ -45,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -132,7 +135,7 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                         CircularProgressIndicator(
                             modifier = Modifier
                                 .size(34.dp)
-                                .padding(end =16.dp),
+                                .padding(end = 16.dp),
                             strokeWidth = 2.dp
                         )
                     }
@@ -163,7 +166,10 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                         }
                     }
 
-                    //            Search bar
+                    //  Categories tab
+                    MovieCategoryTabs()
+
+                    //  Search bar
                     SearchBar(
                         query = searchQuery,
                         onQueryChange = {searchQuery = it},
@@ -171,6 +177,7 @@ fun MoviesScreen (navController: NavController, viewModel: MoviesViewModel= hilt
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     )
+
 
                     if (filteredMovies.isEmpty() && !isLoading) {
                         Box(
@@ -258,7 +265,8 @@ fun MovieItem(movie: Movie, onClick: ()->Unit){
         //            model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
                     model = movie.poster_path,
                     contentDescription = null,
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier
+                        .size(120.dp)
                         .clip(MaterialTheme.shapes.small),
 
                 )
@@ -318,6 +326,37 @@ fun SearchBar(
         ),
         shape = MaterialTheme.shapes.large,
         )
+}
+
+@Composable
+fun MovieCategoryTabs(){
+    val categories = listOf("Trending", "New Movies", "TV Shows", "Sessions", "Popular", "Top Rated")
+    var selectedCategory by remember { mutableStateOf(categories[0]) }
+
+    ScrollableTabRow(
+        selectedTabIndex = categories.indexOf(selectedCategory),
+        edgePadding = 0.dp,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
+        categories.forEach{category ->
+            Tab(
+                selected = category == selectedCategory,
+                onClick = { selectedCategory = category },
+                text = {
+                    Text(
+                        text = category,
+                        style = if(category==selectedCategory){
+                            MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        }else{
+                            MaterialTheme.typography.labelLarge
+                        }
+                    )
+                }
+
+            )
+        }
+    }
 }
 
 
